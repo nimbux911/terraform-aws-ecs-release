@@ -13,21 +13,21 @@ resource "aws_ecs_task_definition" "main" {
   dynamic "volume" {
     for_each = var.host_volumes
     content {
-      name      = each.value.name
-      host_path = lookup(each.value, "host_path", null)
+      name      = volume.value.name
+      host_path = lookup(volume.value, "host_path", null)
     }
   }
 
   dynamic "volume" {
     for_each = var.docker_volumes
     content {
-      name      = each.key
-      host_path = lookup(each.value, "host_path", null)
+      name      = volume.value.name
+      host_path = lookup(volume.value, "host_path", null)
       docker_volume_configuration {
-        autoprovision = lookup(each.value, "autoprovision", true)
-        driver_opts   = lookup(each.value, "driver_opts", null)
-        driver        = lookup(each.value, "driver", null)
-        scope         = lookup(each.value, "scope", "shared")
+        autoprovision = lookup(volume.value, "autoprovision", true)
+        driver_opts   = lookup(volume.value, "driver_opts", null)
+        driver        = lookup(volume.value, "driver", null)
+        scope         = lookup(volume.value, "scope", "shared")
       }
     }
   }
@@ -35,16 +35,16 @@ resource "aws_ecs_task_definition" "main" {
   dynamic "volume" {
     for_each = var.efs_volumes
     content {
-      name      = each.key
-      host_path = lookup(each.value, "host_path", null)
+      name      = volume.value.name
+      host_path = lookup(volume.value, "host_path", null)
       efs_volume_configuration {
-        file_system_id          = each.value.file_system_id
-        root_directory          = lookup(each.value, "root_directory", null)
-        transit_encryption      = lookup(each.value, "transit_encryption", "DISABLED")
-        transit_encryption_port = lookup(each.value, "transit_encryption_port", null)
+        file_system_id          = volume.value.file_system_id
+        root_directory          = lookup(volume.value, "root_directory", null)
+        transit_encryption      = lookup(volume.value, "transit_encryption", "DISABLED")
+        transit_encryption_port = lookup(volume.value, "transit_encryption_port", null)
         authorization_config  {
-          access_point_id = lookup(each.value.authorization_config, "access_point_id", null)
-          iam             = lookup(each.value.authorization_config, "iam", "DISABLED")
+          access_point_id = lookup(volume.value.authorization_config, "access_point_id", null)
+          iam             = lookup(volume.value.authorization_config, "iam", "DISABLED")
         }
       }
     }
@@ -66,7 +66,7 @@ resource "aws_ecs_task_definition" "main" {
 resource "aws_ecs_service" "main" {
   name                                = var.release_name
   cluster                             = data.aws_ecs_cluster.main.arn
-  platform_version                    = "LATEST"
+  platform_version                    = var.launch_type == "FARGATE" || var.capacity_provider == "FARGATE" ? "LATEST" : null
   propagate_tags                      = "TASK_DEFINITION"
   scheduling_strategy                 = var.scheduling_strategy
   desired_count                       = var.replica_count
@@ -94,8 +94,8 @@ resource "aws_ecs_service" "main" {
   dynamic "placement_constraints" {
     for_each = var.placement_constraints
     content {
-      type        = each.type
-      expression  = each.expression
+      type        = placement_constraints.value.type
+      expression  = placement_constraints.value.expression
     }
   }
 
