@@ -28,7 +28,7 @@ locals {
             "awslogs-group": "/ecs/${var.environment}/${var.ecs_cluster_name}",
             "awslogs-region": data.aws_region.current.name,
             "awslogs-stream-prefix": var.release_name
-          } : null
-        }
+          }
+        } : null
     }]
 }
